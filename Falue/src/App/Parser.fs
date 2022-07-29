@@ -3,6 +3,11 @@ module Parser
 open FParsec
 open System
 
+
+type Key =
+    | KeyString of string
+    | KeyInt of int
+
 type Value =
     | IntV of int
     | StringV of string
@@ -13,8 +18,8 @@ type Option =
     | Host of string
 
 type Command =
-    | Set of (Value * Value)
-    | Get of Value
+    | Set of (Key * Value)
+    | Get of Key
     | ListKeys
 
 type private Parser<'t> = Parser<'t, unit>
@@ -34,32 +39,35 @@ let private separator = strWs ";"
 let private intP = many1 digit |>> (charListToString >> int >> IntV)
 
 let private identifier =
-    asciiLetter
-    .>>. (many (letter <|> digit <|> anyOf ".@"))
+    letter .>>. (many (letter <|> digit))
     |>> fun (i, j) -> charListToString (i :: j)
 
 let private identifierP = identifier |>> StringV
 
 let private digitOrLetterString =
-    many (asciiLetter <|> letter)
+    many (ws >>. letter .>> ws)
     |>> (charListToString >> StringV)
 
 let private quote = choice [ pchar '"'; pchar '\'' ]
-let private strP = between quote quote digitOrLetterString
+let private strP = between quote quote (digitOrLetterString)
 let private floatP = pfloat |>> FloatV
 
 let private ttl = strWs "ttl" >>. equals >>. puint32 |>> TTL
 
-let private hostName =
-    strWs "hostname" >>. equals >>. identifier
-    |>> Host
+let private options = choice [ ttl ]
 
-let private options = choice [ ttl; hostName ]
+let valueToKey =
+    function
+    | StringV v -> KeyString v
+    | IntV v -> KeyInt v
+    | t -> raise (new Exception("invalid key type"))
 
-let private keyP = ws >>. choice [ strP; identifierP; intP ]
+let private keyP =
+    ws >>. choice [ strP; identifierP; intP ]
+    |>> valueToKey
+
 let private valueP = ws >>. choice [ strP; intP; floatP ]
 
-// TODO: Use the key type again
 let private parseSet =
     tuple2 (strWs "set" >>. keyP .>> equals) valueP
     |>> Set

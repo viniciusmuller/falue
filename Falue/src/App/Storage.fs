@@ -4,9 +4,9 @@ type StorageStructure = Map<Parser.Value, Parser.Value>
 
 type Message =
     | Stop
-    | Set of (Parser.Value * Parser.Value)
-    | Fetch of (AsyncReplyChannel<Parser.Value option> * Parser.Value)
-    | ListKeys of AsyncReplyChannel<Parser.Value list>
+    | Set of (Parser.Key * Parser.Value)
+    | Fetch of (AsyncReplyChannel<Parser.Value option> * Parser.Key)
+    | ListKeys of AsyncReplyChannel<Parser.Key list>
 
 let add = Map.add
 let get = Map.tryFind

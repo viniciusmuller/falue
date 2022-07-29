@@ -18,6 +18,11 @@ let extractValue =
     | Parser.IntV a -> string a
     | Parser.FloatV a -> string a
 
+let extractKey =
+    function
+    | Parser.KeyString a -> a
+    | Parser.KeyInt a -> string a
+
 let processLine line (server: Storage.server) =
     match Parser.parse line with
     | Ok command ->
@@ -31,7 +36,7 @@ let processLine line (server: Storage.server) =
             |> Option.defaultValue ":notfound"
         | Parser.ListKeys ->
             (server.ListKeys())
-            |> List.map extractValue
+            |> List.map extractKey
             |> String.concat "\n"
     | Error msg -> msg
 
