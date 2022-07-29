@@ -1,15 +1,17 @@
 module Storage
 
-type StorageStructure = Map<Parser.Key, Parser.Value>
+type StorageStructure = Map<Parser.Value, Parser.Value>
 
 type Message =
     | Stop
-    | Set of (Parser.Key * Parser.Value)
-    | Fetch of (AsyncReplyChannel<Parser.Value option> * Parser.Key)
+    | Set of (Parser.Value * Parser.Value)
+    | Fetch of (AsyncReplyChannel<Parser.Value option> * Parser.Value)
+    | ListKeys of AsyncReplyChannel<Parser.Value list>
 
 let add = Map.add
 let get = Map.tryFind
 let remove = Map.remove
+let lsKeys map = Map.toList map |> List.map fst
 
 type server() =
     let innerServer =
@@ -25,6 +27,10 @@ type server() =
                         let value = get key storage
                         reply.Reply(value)
                         return! loop storage
+                    | ListKeys (reply) ->
+                        let keys = lsKeys storage
+                        reply.Reply(keys)
+                        return! loop storage
                 }
 
             loop Map.empty)
@@ -33,5 +39,8 @@ type server() =
 
     member this.Fetch(key) =
         innerServer.PostAndReply((fun reply -> Fetch(reply, key)), timeout = 2000)
+
+    member this.ListKeys() =
+        innerServer.PostAndReply((fun reply -> ListKeys(reply)), timeout = 2000)
 
     member this.Stop() = innerServer.Post(Stop)

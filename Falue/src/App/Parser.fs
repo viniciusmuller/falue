@@ -3,10 +3,6 @@ module Parser
 open FParsec
 open System
 
-type Key =
-    | KeyInt of int
-    | KeyString of string
-
 type Value =
     | IntV of int
     | StringV of string
@@ -16,10 +12,10 @@ type Option =
     | TTL of uint32
     | Host of string
 
-type Query =
-    { key: Value
-      value: Value
-      options: Option list option }
+type Command =
+    | Set of (Value * Value)
+    | Get of Value
+    | ListKeys
 
 type private Parser<'t> = Parser<'t, unit>
 
@@ -62,15 +58,20 @@ let private options = choice [ ttl; hostName ]
 
 let private keyP = ws >>. choice [ strP; identifierP; intP ]
 let private valueP = ws >>. choice [ strP; intP; floatP ]
-let private setCommand = tuple2 (strWs "set" >>. keyP .>> equals) valueP
+
+// TODO: Use the key type again
+let private parseSet =
+    tuple2 (strWs "set" >>. keyP .>> equals) valueP
+    |>> Set
+
+let private parseGet = strWs "get" >>. keyP |>> Get
+let private parseList = strWs "listkeys" |>> (fun _ -> ListKeys)
 
 // TODO: Figure out how to make this optional but raise error if it's present
 // and it fails to parse
 let private commandOptions = opt (ws >>. strWs "with" >>. sepBy options separator)
 
-let private buildQuery (k, v) opts = { key = k; value = v; options = opts }
-
-let private grammar = pipe2 setCommand commandOptions buildQuery
+let private grammar = parseSet <|> parseGet <|> parseList
 
 let parse input =
     let parser: Parser<_> = grammar
