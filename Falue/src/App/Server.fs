@@ -29,13 +29,16 @@ let processLine line (server: Storage.server) =
         match command with
         | Parser.Set kv ->
             server.Set(kv)
-            ":ok"
+            "()"
         | Parser.Get key ->
             server.Fetch(key)
             |> Option.map extractValue
             |> Option.defaultValue ":notfound"
+        | Parser.Remove k ->
+            server.Remove(k)
+            "()"
         | Parser.ListKeys ->
-            (server.ListKeys())
+            server.ListKeys()
             |> List.map extractKey
             |> String.concat "\n"
     | Error msg -> msg

@@ -4,8 +4,9 @@ type StorageStructure = Map<Parser.Value, Parser.Value>
 
 type Message =
     | Stop
-    | Set of (Parser.Key * Parser.Value)
-    | Fetch of (AsyncReplyChannel<Parser.Value option> * Parser.Key)
+    | Add of AsyncReplyChannel<unit> * (Parser.Key * Parser.Value)
+    | Remove of AsyncReplyChannel<unit> * Parser.Key
+    | Fetch of AsyncReplyChannel<Parser.Value option> * Parser.Key
     | ListKeys of AsyncReplyChannel<Parser.Key list>
 
 let add = Map.add
@@ -22,20 +23,29 @@ type server() =
 
                     match msg with
                     | Stop -> return ()
-                    | Set (key, value) -> return! loop (add key value storage)
                     | Fetch (reply, key) ->
-                        let value = get key storage
-                        reply.Reply(value)
+                        reply.Reply(get key storage)
                         return! loop storage
                     | ListKeys (reply) ->
-                        let keys = lsKeys storage
-                        reply.Reply(keys)
+                        reply.Reply(lsKeys storage)
                         return! loop storage
+                    | Remove (reply, key) ->
+                        let newState = remove key storage
+                        reply.Reply(())
+                        return! loop newState
+                    | Add (reply, (key, value)) ->
+                        let newState = add key value storage
+                        reply.Reply(())
+                        return! loop (newState)
                 }
 
             loop Map.empty)
 
-    member this.Set(x) = innerServer.Post(Set x)
+    member this.Set(x) =
+        innerServer.PostAndReply((fun reply -> Add(reply, x)), timeout = 2000)
+
+    member this.Remove(x) =
+        innerServer.PostAndReply((fun reply -> Remove(reply, x)), timeout = 2000)
 
     member this.Fetch(key) =
         innerServer.PostAndReply((fun reply -> Fetch(reply, key)), timeout = 2000)

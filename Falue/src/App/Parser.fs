@@ -20,6 +20,7 @@ type Option =
 type Command =
     | Set of (Key * Value)
     | Get of Key
+    | Remove of Key
     | ListKeys
 
 type private Parser<'t> = Parser<'t, unit>
@@ -73,17 +74,22 @@ let private parseSet =
     |>> Set
 
 let private parseGet = strWs "get" >>. keyP |>> Get
+let private parseRemove = strWs "del" >>. keyP |>> Remove
 let private parseList = strWs "listkeys" |>> (fun _ -> ListKeys)
 
 // TODO: Figure out how to make this optional but raise error if it's present
 // and it fails to parse
 let private commandOptions = opt (ws >>. strWs "with" >>. sepBy options separator)
 
-let private grammar = parseSet <|> parseGet <|> parseList
+let private grammar =
+    choice [ parseSet
+             parseGet
+             parseList
+             parseRemove ]
 
 let parse input =
     let parser: Parser<_> = grammar
 
     match run parser input with
     | Success (query, _, _) -> FSharp.Core.Ok query
-    | Failure (msg, error, _) -> FSharp.Core.Error msg
+    | Failure (msg, _, _) -> FSharp.Core.Error msg
