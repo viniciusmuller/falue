@@ -3,7 +3,7 @@
 Falue is an in-progress in-memory key-value store application.
 
 It offers a TCP interface and guarantees strong data consistency by using the
-actor model to query reads and writes.
+actor model to queue reads and writes.
 
 # Usage
 ```shell
