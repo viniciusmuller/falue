@@ -2,11 +2,13 @@ module Falue.Tests.Storage
 
 open NUnit.Framework
 
+open Falue.Api
+
 [<SetUp>]
 let Setup () = ()
 
-let k = Parser.KeyString "foo"
-let v = Parser.StringV "bar"
+let k = KeyString "foo"
+let v = StringV "bar"
 
 let remove k (server: Storage.server) = server.Remove(k)
 let insert t (server: Storage.server) = server.Set(t)

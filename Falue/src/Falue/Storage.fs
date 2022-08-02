@@ -1,13 +1,14 @@
 module Storage
 
-type StorageStructure = Map<Parser.Value, Parser.Value>
+
+open Falue.Api
 
 type Message =
     | Stop
-    | Add of AsyncReplyChannel<unit> * (Parser.Key * Parser.Value)
-    | Remove of AsyncReplyChannel<unit> * Parser.Key
-    | Fetch of AsyncReplyChannel<Parser.Value option> * Parser.Key
-    | ListKeys of AsyncReplyChannel<Parser.Key list>
+    | Add of AsyncReplyChannel<unit> * (Key * Value)
+    | Remove of AsyncReplyChannel<unit> * Key
+    | Fetch of AsyncReplyChannel<Value option> * Key
+    | ListKeys of AsyncReplyChannel<Key list>
 
 let add = Map.add
 let get = Map.tryFind

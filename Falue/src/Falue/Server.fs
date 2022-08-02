@@ -7,6 +7,8 @@ open System
 open System.Text
 open System.Collections.Generic
 
+open Falue.Api
+
 let closeSocket (c: TcpClient) (sr: StreamReader) (sw: StreamWriter) =
     sr.Close()
     sw.Close()
@@ -14,30 +16,30 @@ let closeSocket (c: TcpClient) (sr: StreamReader) (sw: StreamWriter) =
 
 let extractValue =
     function
-    | Parser.StringV a -> a
-    | Parser.IntV a -> string a
-    | Parser.FloatV a -> string a
+    | StringV a -> a
+    | IntV a -> string a
+    | FloatV a -> string a
 
 let extractKey =
     function
-    | Parser.KeyString a -> a
-    | Parser.KeyInt a -> string a
+    | KeyString a -> a
+    | KeyInt a -> string a
 
 let processLine line (server: Storage.server) =
     match Parser.parse line with
     | Ok command ->
         match command with
-        | Parser.Set kv ->
+        | Set kv ->
             server.Set(kv)
             "()"
-        | Parser.Get key ->
+        | Get key ->
             server.Fetch(key)
             |> Option.map extractValue
             |> Option.defaultValue ":notfound"
-        | Parser.Remove k ->
+        | Remove k ->
             server.Remove(k)
             "()"
-        | Parser.ListKeys ->
+        | ListKeys ->
             server.ListKeys()
             |> List.map extractKey
             |> String.concat "\n"

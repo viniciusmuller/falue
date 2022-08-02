@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Falue\Falue.fsproj" />
+    <ProjectReference Include="..\Falue.Api\Falue.Api.fsproj" />
   </ItemGroup>
 
 </Project>
