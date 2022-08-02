@@ -1,64 +1,77 @@
-﻿// module Client =
-//     let mutable private socket = None
-//     let mutable host = None
-//     let mutable port = None
+﻿module Falue.Client
 
-//     let configure hostt portp =
-//         this.host = Some hostt
-//         port = Some portt
+open System
+open System.Net.Sockets
+open System.Net.Sockets
+open System.IO
 
-
-//     let private
-
-//     let get key = Int32 port = 13000;
-//     TcpClient client = new TcpClient(server, port);
-
-namespace Falue.Client
-
-// module Client
-
-// type StorageStructure = Map<Parser.Value, Parser.Value>
+open Falue.Api
 
 type Message =
     | Stop
-    | Add of AsyncReplyChannel<unit> * (Parser.Key * Parser.Value)
-    | Remove of AsyncReplyChannel<unit> * Parser.Key
-    | Fetch of AsyncReplyChannel<Parser.Value option> * Parser.Key
-    | ListKeys of AsyncReplyChannel<Parser.Key list>
+    | Add of AsyncReplyChannel<unit> * (Key * Value)
+    | Remove of AsyncReplyChannel<unit> * Key
+    | Fetch of AsyncReplyChannel<Value option> * Key
+    | ListKeys of AsyncReplyChannel<Key list>
 
-// let add = Map.add
-// let get = Map.tryFind
-// let remove = Map.remove
-// let lsKeys map = Map.toList map |> List.map fst
+type ClientState =
+    { credentials: string * int // host, port
+      socket: TcpClient }
 
-type server() =
+let private keyToStr key =
+    match key with
+    | KeyInt i -> string i
+    | KeyString s -> s
+
+let private valueToStr value =
+    match value with
+    | IntV i -> string i
+    | StringV s -> s
+    | FloatV s -> string s
+
+
+// TODO: Should read read server response and return Result<(), string>
+let private add key value (writer: StreamWriter) =
+    let key = keyToStr key
+    let value = valueToStr value
+    // TODO: possible security issue related to formatting queries,
+    // maybe drop identifier support and only allow strings?
+    let query = $"set {key} = {value}"
+    writer.WriteLine(query)
+
+let private get key (writer: StreamWriter) (reader: StreamWriter) =
+    let key = keyToStr key
+    let query = $"set {key}"
+    let data = System.Text.Encoding.ASCII.GetBytes(query)
+    data
+
+let private remove = Map.remove
+let private lsKeys map = Map.toList map |> List.map fst
+
+type client() =
     let innerServer =
         MailboxProcessor.Start (fun inbox ->
-            let rec loop credentials =
+            let rec loop (writer, reader) =
                 async {
                     let! msg = inbox.Receive()
-                    return! loop credentials
+                    return! loop state
 
-                    match msg with {
-
-                    }
-
-                    // match msg with
-                    // | Stop -> return ()
-                    // | Fetch (reply, key) ->
-                    //     reply.Reply(get key storage)
-                    //     return! loop storage
-                    // | ListKeys (reply) ->
-                    //     reply.Reply(lsKeys storage)
-                    //     return! loop storage
-                    // | Remove (reply, key) ->
-                    //     let newState = remove key storage
-                    //     reply.Reply(())
-                    //     return! loop newState
-                    // | Add (reply, (key, value)) ->
-                    //     let newState = add key value storage
-                    //     reply.Reply(())
-                    //     return! loop (newState)
+                    match msg with
+                    | Stop -> return ()
+                    | Fetch (reply, key) ->
+                        reply.Reply(get key writer reader)
+                        return! loop state
+                    | ListKeys (reply) ->
+                        reply.Reply(lsKeys state.socket)
+                        return! loop storage
+                    | Remove (reply, key) ->
+                        let newState = remove key state.socket
+                        reply.Reply(())
+                        return! loop state
+                    | Add (reply, (key, value)) ->
+                        let newState = add key value state.socket
+                        reply.Reply(())
+                        return! loop state
                 }
 
             loop Map.empty)
